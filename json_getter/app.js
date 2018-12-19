@@ -6,7 +6,7 @@ const https = require('https');
 const fs = require('fs');
 const { parse }= require('node-html-parser');
 
-const jsonRoot = 'https://mid-hudson-dev.connexient.com/kiosk/sqlite/json/'
+const jsonRoot = 'https://url/to/sqlite/json/'
 
 https.get(jsonRoot, (res) => {
   console.log(`${jsonRoot} statusCode: ${res.statusCode}`);
