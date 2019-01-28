@@ -4,26 +4,44 @@ const http = require('http').Server(app)
 const port = 8080;
 const https = require('https');
 const fs = require('fs');
+const readline = require('readline');
 const { parse }= require('node-html-parser');
 
-const jsonRoot = 'https://url/to/sqlite/json/'
+var jsonRoot = '';
 
-https.get(jsonRoot, (res) => {
-  console.log(`${jsonRoot} statusCode: ${res.statusCode}`);
-  var rawData = '';
-  res.on('data', (chunk) => {
-    rawData += chunk;
-  });
-  res.on('end', () => {
-    try {
-      parseHtml(rawData)
-    } catch (e) {
-      console.error(e.message);
-    }
-  });
-}).on('error', (e) => {
-  console.error(e);
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
 });
+
+function askUrl(){
+  let consoleQuestion = 'Inserta la url al directorio raiz de los jsons EJ: "https://project-dev.server.com/web/sqlite/json/" :\n'
+  rl.question(consoleQuestion, (userInput) => {
+    jsonRoot = userInput.endsWith('/') ? userInput : userInput+'/';
+    rl.close();
+    startProcess()
+  });
+};
+
+function startProcess() {
+  https.get(jsonRoot, (res) => {
+    console.log(`${jsonRoot} statusCode: ${res.statusCode}`);
+    var rawData = '';
+    res.on('data', (chunk) => {
+      rawData += chunk;
+    });
+    res.on('end', () => {
+      try {
+        parseHtml(rawData)
+      } catch (e) {
+        console.error(e.message);
+      }
+    });
+  }).on('error', (e) => {
+    console.log('hay un error');
+    console.error(e);
+  });
+}
 
 function parseHtml(rawData) {
   const rootDir = parse(rawData);
@@ -80,5 +98,6 @@ function writeJsonFile(rawData,jsonUrl) {
 
 http.listen(port,function (err) {
   if (err) return console.log(err);
-  console.log('server corriendo ' + port);
+  console.log(`Server corriendo en el puerto ${port}`);
+  askUrl()
 })
