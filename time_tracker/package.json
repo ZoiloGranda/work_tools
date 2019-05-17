@@ -4,10 +4,13 @@
   "description": "",
   "main": "app.js",
   "dependencies": {
+    "curl-request": "^1.1.1",
     "express": "^4.16.4",
+    "node-command-line": "^1.0.2",
     "node-html-parser": "^1.1.15",
     "nodemon": "^1.19.0",
-    "puppeteer-core": "^1.16.0"
+    "puppeteer-core": "^1.16.0",
+    "request": "^2.88.0"
   },
   "devDependencies": {},
   "scripts": {
