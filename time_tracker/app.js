@@ -16,10 +16,10 @@ app.use(bodyParser.json())
 
 var pageToNavigate = 2;
 const lastReportedCommit ={
-  hash: '4925860f',
+  hash: '09592e38',
 };
 const datesToReport = {
-  days:['14'],
+  days:['15'],
   month:'05'
 };
 
@@ -42,16 +42,15 @@ const datesToReport = {
   // await browser.close();
 })();
 
-async function startNavigation(page) {
-  console.log('voy');
-  console.log('al inicio',pageToNavigate);
+async function startNavigation(page, alreadyCheckedNextPage) {
+  console.log('al inicio pageToNavigate',pageToNavigate);
   var commitsInCurrentPage = await getAllCommitsFromPage(page);
-  console.log(commitsInCurrentPage);
-  var commitsToReport = await checkCommits(commitsInCurrentPage)
-  console.log(commitsToReport);
+  console.log('commitsInCurrentPage startNavigation ',commitsInCurrentPage);
+  var commitsToReport = await checkCommits(commitsInCurrentPage, alreadyCheckedNextPage)
+  console.log('commitsToReport startNavigation ', commitsToReport);
   if (commitsToReport) {
     for (var i = 0; i < datesToReport.days.length; i++) {
-      var formatedPostData = await prepareCommitsForOneDay(commitsToReport,datesToReport.days[i]);
+      var formatedPostData = await prepareCommitsForOneDay(commitsToReport,datesToReport.days[i],page);
       await sendData(formatedPostData);
     }
   } else {
@@ -95,7 +94,10 @@ function getAllCommitsFromPage(page){
   })
 }
 
-async function checkCommits(commitsInCurrentPage) {
+async function checkCommits(commitsInCurrentPage, alreadyCheckedNextPage) {
+  if (alreadyCheckedNextPage) {
+    return commitsInCurrentPage;
+  }
   var found = false;
   for (var commit in commitsInCurrentPage) {
     if (commitsInCurrentPage.hasOwnProperty(commit)) {
@@ -114,7 +116,7 @@ async function checkCommits(commitsInCurrentPage) {
   return false;
 }
 
-async function prepareCommitsForOneDay(commitsToReport, dayToReport){
+async function prepareCommitsForOneDay(commitsToReport, dayToReport, page){
   var month = datesToReport.month
   console.log('prepareCommitsForOneDay');
   console.log('commitsToReport.length ',commitsToReport.length);
@@ -133,9 +135,22 @@ async function prepareCommitsForOneDay(commitsToReport, dayToReport){
       description: descriptionString
     }
     return postData
-  }  else {
-    console.log('busca mas commits');  
+  }  else if(commitsToReport.length ===0){
+    //se llego a la pagina con el ultimo commit reportado
+    //pero ese es el ultimo commit de la pagina, asi que a navegar a 
+    // la pagina anterior
+    console.log('commitsToReport en el else 0',commitsToReport.length);
+    goToPreviousPage(page);
+  } else {
+    console.log('quedan 1 o dos commits en esta pagina nada mas');
   }
+}
+
+async function goToPreviousPage(page) {
+  pageToNavigate--;
+  await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate}&u=523487`);
+  var alreadyCheckedNextPage = true;
+  startNavigation(page, alreadyCheckedNextPage);
 }
 
 function sendData(formatedPostData) {
