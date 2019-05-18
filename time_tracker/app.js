@@ -78,13 +78,17 @@ async function startProcess() {
   // await browser.close();
 };
 
-async function startNavigation(page, alreadyCheckedNextPage) {
+async function startNavigation(page, alreadyCheckedNextPage, pendingCommits) {
+  console.log('pendingCommits ', pendingCommits);
   console.log('al inicio pageToNavigate',pageToNavigate);
   var commitsInCurrentPage = await getAllCommitsFromPage(page);
   console.log('commitsInCurrentPage startNavigation ',commitsInCurrentPage);
   var commitsToReport = await checkCommits(commitsInCurrentPage, alreadyCheckedNextPage)
   console.log('commitsToReport startNavigation ', commitsToReport);
   if (commitsToReport) {
+    if (pendingCommits) {
+      commitsToReport = commitsToReport.concat(pendingCommits);
+    }
     for (var i = 0; i < datesToReport.days.length; i++) {
       var formatedPostData = await prepareCommitsForOneDay(commitsToReport,datesToReport.days[i],page);
       await sendData(formatedPostData);
@@ -103,7 +107,6 @@ async function startNavigation(page, alreadyCheckedNextPage) {
       console.log('llegaste al limite de paginas que revisar: ${maxPagesToNavigate}');
     }
   }
-  
 }
 
 function getAllCommitsFromPage(page){
@@ -154,7 +157,7 @@ async function checkCommits(commitsInCurrentPage, alreadyCheckedNextPage) {
 
 async function prepareCommitsForOneDay(commitsToReport, dayToReport, page){
   var month = datesToReport.month
-  console.log('prepareCommitsForOneDay');
+  console.log('prepareCommitsForOneDay commitsToReport ', commitsToReport);
   console.log('commitsToReport.length ',commitsToReport.length);
   console.log('dayToReport ', dayToReport);
   if (commitsToReport.length >=3) {
@@ -173,20 +176,27 @@ async function prepareCommitsForOneDay(commitsToReport, dayToReport, page){
     return postData
   }  else if(commitsToReport.length ===0){
     //se llego a la pagina con el ultimo commit reportado
-    //pero ese es el ultimo commit de la pagina, asi que a navegar a 
+    //pero ese es el ultimo commit de la pagina, asi que va navegar a 
     // la pagina anterior
     console.log('commitsToReport en el else 0',commitsToReport.length);
     goToPreviousPage(page);
   } else {
     console.log('quedan 1 o dos commits en esta pagina nada mas');
+    goToPreviousPage(page, commitsToReport);
   }
 }
 
-async function goToPreviousPage(page) {
-  pageToNavigate--;
-  await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate}&u=523487`);
-  var alreadyCheckedNextPage = true;
-  startNavigation(page, alreadyCheckedNextPage);
+async function goToPreviousPage(page, commitsToReport) {
+  console.log('goToPreviousPage pageToNavigate antes ', pageToNavigate);
+  if (pageToNavigate >= 4) {
+    pageToNavigate--;
+    console.log('goToPreviousPage pageToNavigate despues ', pageToNavigate);
+    await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate-1}&u=523487`);
+    var alreadyCheckedNextPage = true;
+    startNavigation(page, alreadyCheckedNextPage, commitsToReport);
+  }else if (pageToNavigate === 3||pageToNavigate === 2) {
+    console.log('ya no hay mas paginas ni commits que revisar');
+  }
 }
 
 function sendData(formatedPostData) {
