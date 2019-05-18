@@ -4,22 +4,14 @@ const http = require('http').Server(app)
 const port = 8080;
 const https = require('https');
 const puppeteer = require('puppeteer-core');
-const request = require('request');
 const cmd = require('node-command-line');
-const curl = new (require( 'curl-request' ))();
-const bodyParser = require('body-parser');
-// parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: true }))
-
-// parse application/json
-app.use(bodyParser.json())
 
 var pageToNavigate = 2;
 const lastReportedCommit ={
-  hash: '09592e38',
+  hash: '6a9b23b7',
 };
 const datesToReport = {
-  days:['15'],
+  days:['16'],
   month:'05'
 };
 
