@@ -5,17 +5,61 @@ const port = 8080;
 const https = require('https');
 const puppeteer = require('puppeteer-core');
 const cmd = require('node-command-line');
+const readline = require('readline');
 
 var pageToNavigate = 2;
-const lastReportedCommit ={
-  hash: '6a9b23b7',
+var lastReportedCommit ={
+  hash: '',
 };
-const datesToReport = {
-  days:['16'],
-  month:'05'
+var datesToReport = {
+  days:[],
+  month:''
 };
 
-(async () => {
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+async function askQuestions() {
+  await askDays();
+  await askMonth();
+  await askHash();
+  startProcess()
+}
+
+function askDays(){
+  return new Promise(function(resolve, reject) {
+    let consoleQuestion = 'Que dias vas a reportar? solo numeros, separados por coma y con 0 adelante si es menor de 10 :\n'
+    rl.question(consoleQuestion, (userInput) => {
+      datesToReport.days = [userInput];
+      resolve()
+    });
+  });
+}
+
+function askMonth() {
+  return new Promise(function(resolve, reject) {
+    let consoleQuestion = 'Que mes? solo uno, en numero, con 0 adelante si es menor de 10 :\n'
+    rl.question(consoleQuestion, (userInput) => {
+      datesToReport.month = userInput;
+      resolve()
+    });
+  });
+}
+
+function askHash() {
+  return new Promise(function(resolve, reject) {
+    consoleQuestion = 'Ultimo Hash reportado en el timetracker :\n'
+    rl.question(consoleQuestion, (userInput) => {
+      lastReportedCommit.hash = userInput;
+      rl.close();
+      resolve()
+    });
+  });
+};
+
+async function startProcess() {
   const browser = await puppeteer.launch({
     executablePath:'/opt/google/chrome/google-chrome',
     headless:false,
@@ -32,7 +76,7 @@ const datesToReport = {
   await page.goto('https://connexient.beanstalkapp.com/search?u=523487');
   var navigateCommits = await startNavigation(page);
   // await browser.close();
-})();
+};
 
 async function startNavigation(page, alreadyCheckedNextPage) {
   console.log('al inicio pageToNavigate',pageToNavigate);
@@ -167,4 +211,5 @@ app.post('/data', function (req, res) {
 http.listen(port,function (err) {
   if (err) return console.log(err);
   console.log(`Server corriendo en el puerto ${port}`);
+  askQuestions();
 })
