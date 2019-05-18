@@ -6,6 +6,7 @@ const https = require('https');
 const puppeteer = require('puppeteer-core');
 const cmd = require('node-command-line');
 const readline = require('readline');
+const dotenv = require('dotenv').config();
 
 var pageToNavigate = 2;
 var lastReportedCommit ={
@@ -15,6 +16,12 @@ var datesToReport = {
   days:[],
   month:''
 };
+var environment_data = {
+  bs_username:process.env.BEANSTALK_USERNAME,
+  bs_password:process.env.BEANSTALK_PASSWORD,
+  bs_userid:process.env.BEANSTALK_USERID,
+  chrome_path:process.env.CHROME_EXECUTABLE_PATH
+}
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -61,7 +68,7 @@ function askHash() {
 
 async function startProcess() {
   const browser = await puppeteer.launch({
-    executablePath:'/opt/google/chrome/google-chrome',
+    executablePath:environment_data.chrome_path,
     headless:false,
     slowMo:100, 
     devtools:true,
@@ -69,11 +76,11 @@ async function startProcess() {
   const page = await browser.newPage();
   await page.goto('https://connexient.beanstalkapp.com/session/new');
   await page.focus('#username')
-  await page.keyboard.type('zoilogranda')
+  await page.keyboard.type(environment_data.bs_username)
   await page.focus('#password')
-  await page.keyboard.type('192511244')
+  await page.keyboard.type(environment_data.bs_password)
   await page.click('input[type="submit"]')
-  await page.goto('https://connexient.beanstalkapp.com/search?u=523487');
+  await page.goto(`https://connexient.beanstalkapp.com/search?u=${environment_data.bs_userid}`);
   var navigateCommits = await startNavigation(page);
   // await browser.close();
 };
