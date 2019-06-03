@@ -168,24 +168,33 @@ async function prepareCommitsForOneDay(commitsToReport, dayToReport, page){
     console.log('commitsToReport en el else 0',commitsToReport.length);
     goToPreviousPage(page);
   } else {
-    console.log('quedan 1 o dos commits en esta pagina nada mas');
+    console.log('quedan 1 o 2 commits en esta pagina nada mas');
     goToPreviousPage(page, commitsToReport);
   }
 }
 
 async function goToPreviousPage(page, commitsToReport) {
-  if (pageToNavigate >= 4) {
+  var currentPage = await page.evaluate(function () {
+    console.log(window.location.href);
+    var url_string = window.location.href
+    var url = new URL(url_string);
+    var currentPage = url.searchParams.get("page");
+    console.log(currentPage);
+    return currentPage;
+  })
+  console.log('currentPage ', currentPage);
+  if (currentPage >=2) {
     pageToNavigate--;
     await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate-1}&u=523487`);
     var alreadyCheckedNextPage = true;
     startNavigation(page, alreadyCheckedNextPage, commitsToReport);
-  }else if (pageToNavigate === 3||pageToNavigate === 2) {
+  }else if (currentPage === 1) {
     console.log('ya no hay mas paginas ni commits que revisar');
   }
 }
 
 function sendData(formatedPostData) {
-  console.log(formatedPostData);
+  console.log('formatedPostData ', formatedPostData);
   var description = formatedPostData.description.replace(/'/g, '');
   description = encodeURIComponent(description)
   cmd.run(`curl 'https://timetracker.bairesdev.com/CargaTimeTracker.aspx' -H 'Connection: keep-alive'  -H 'Pragma: no-cache'  -H 'Cache-Control: no-cache'  -H 'Origin: https://timetracker.bairesdev.com'  -H 'Upgrade-Insecure-Requests: 1'  -H 'Content-Type: application/x-www-form-urlencoded'  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'  -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3'  -H 'Referer: https://timetracker.bairesdev.com/CargaTimeTracker.aspx'  -H 'Accept-Encoding: gzip, deflate, br'  -H 'Accept-Language: es-ES,es;q=0.9'  -H 'Cookie: ASP.NET_SessionId=pkitlwsrywi3soyyhmiz2zhn; idProyectoAnterior=197; idTipoAsignacionAnterior=1; idFocalPointAnterior=10030'\
