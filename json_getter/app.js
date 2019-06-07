@@ -62,37 +62,68 @@ function generateJsonsUrls(jsonsUrls){
 }
 
 function getJsons(filesList){
-  for (var i = 0; i < filesList.length; i++) {
-    sendRequest(filesList[i])
+  var requestArray = [];
+  for (var i = 0; i < filesList.length; i++){
+    requestArray.push(sendRequest(filesList[i]))
   }
+  sendAllRequests(requestArray)
+}
+
+function sendAllRequests(requestArray) {
+  Promise.all(requestArray).then(function (jsonData) {
+    var jsonDataArray = [];
+    jsonData.forEach(function(element) {
+      jsonDataArray.push(writeJsonFile(element.rawData,element.jsonUrl))
+    })
+    writeAllJsonFiles(jsonDataArray);
+  }).catch(function (err) {
+    console.log(err);
+  })
+}
+
+function writeAllJsonFiles(jsonDataArray) {
+  Promise.all(jsonDataArray).then(function (data) {
+    console.log(data);
+    console.log('\x1b[34m','FINISHED SAVING ALL THE JSONS');
+    process.exit()
+  }).catch(function (e) {
+    console.log(e);
+  })
 }
 
 function sendRequest(jsonUrl) {
-  https.get(`${jsonRoot}${jsonUrl}`, (res) => {
-    console.log(`${jsonUrl} statusCode: ${res.statusCode}` );
-    // console.log('headers:', res.headers);
-    var rawData = '';
-    res.on('data', (chunk) => {
-      rawData += chunk;
+  return new Promise(function(resolve, reject) {
+    https.get(`${jsonRoot}${jsonUrl}`, (res) => {
+      console.log(`${jsonUrl} statusCode: ${res.statusCode}` );
+      // console.log('headers:', res.headers);
+      var rawData = '';
+      res.on('data', (chunk) => {
+        rawData += chunk;
+      });
+      res.on('end', () => {
+        try {
+          resolve({rawData:rawData, jsonUrl:jsonUrl})
+        } catch (e) {
+          console.error(e.message);
+          reject(e.message)
+        }
+      });
+    }).on('error', (e) => {
+      console.error(e);
     });
-    res.on('end', () => {
-      try {
-        writeJsonFile(rawData, jsonUrl)
-      } catch (e) {
-        console.error(e.message);
-      }
-    });
-  }).on('error', (e) => {
-    console.error(e);
   });
 }
 
 function writeJsonFile(rawData,jsonUrl) {
-  fs.writeFile(`./jsons/${jsonUrl}`, rawData, function(err) {
-    if(err) {
-      return console.error(err);
-    }
-    console.log(`The file ${jsonUrl} was saved!`);
+  return new Promise(function(resolve, reject) {
+    fs.writeFile(`./jsons/${jsonUrl}`, rawData, function(err) {
+      if(err) {
+        console.log(err);
+        reject(err)
+      }
+      // console.log(`The file ${jsonUrl} was saved!`);
+      resolve(`The file ${jsonUrl} was saved!`)
+    });
   });
 }
 
