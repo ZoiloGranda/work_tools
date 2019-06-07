@@ -14,88 +14,119 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
+function processHandler(){
+  askUrl().then(function () {
+    return startProcess()
+  }).then(function(rawData){
+    return parseHtml(rawData)
+  }).then(function (jsonsUrls) {
+    return generateJsonsUrls(jsonsUrls)
+  }).then(function (filesList) {
+    return getJsons(filesList)
+  }).then(function (requestsArray) {
+    return sendAllRequests(requestsArray)
+  }).then(function (jsonDataArray) {
+    return writeAllJsonFiles(jsonDataArray)
+  }).then(function (allSavedFiles) {
+    process.exit()
+  }).catch(function (e) {
+    console.log(e);
+  });
+};
+
 function askUrl(){
-  let consoleQuestion = 'Inserta la url al directorio raiz de los jsons EJ: "https://project-dev.server.com/web/sqlite/json/" :\n'
-  rl.question(consoleQuestion, (userInput) => {
-    jsonRoot = userInput.endsWith('/') ? userInput : userInput+'/';
-    rl.close();
-    startProcess()
+  return new Promise(function(resolve, reject) {
+    let consoleQuestion = 'Inserta la url al directorio raiz de los jsons EJ: "https://project-dev.server.com/web/sqlite/json/" :\n'
+    rl.question(consoleQuestion, (userInput) => {
+      console.log({userInput});
+      jsonRoot = userInput.endsWith('/') ? userInput : userInput+'/';
+      rl.close();
+      resolve()
+    });
   });
 };
 
 function startProcess() {
-  https.get(jsonRoot, (res) => {
-    console.log(`${jsonRoot} statusCode: ${res.statusCode}`);
-    var rawData = '';
-    res.on('data', (chunk) => {
-      rawData += chunk;
+  return new Promise(function(resolve, reject) {
+    https.get(jsonRoot, (res) => {
+      console.log(`${jsonRoot} statusCode: ${res.statusCode}`);
+      var rawData = '';
+      res.on('data', (chunk) => {
+        rawData += chunk;
+      });
+      res.on('end', () => {
+        resolve(rawData)
+      }) ;
+    }).on('error', (e) => {
+      console.log('hay un error');
+      reject(e)
     });
-    res.on('end', () => {
-      try {
-        parseHtml(rawData)
-      } catch (e) {
-        console.error(e.message);
-      }
-    });
-  }).on('error', (e) => {
-    console.log('hay un error');
-    console.error(e);
   });
-}
+};
 
 function parseHtml(rawData) {
-  const rootDir = parse(rawData);
-  var jsonsUrls = rootDir.querySelectorAll('a');
-  generateJsonsUrls(jsonsUrls)
-}
+  return new Promise(function(resolve, reject) {
+    const rootDir = parse(rawData);
+    var jsonsUrls = rootDir.querySelectorAll('a');
+    resolve(jsonsUrls)
+  });
+};
 
 function generateJsonsUrls(jsonsUrls){
-  var filesList =[];
-  for (var variable in jsonsUrls) {
-    if (jsonsUrls.hasOwnProperty(variable)) {
-      if (jsonsUrls[variable].text.indexOf(".json")>-1) {
-        filesList.push(jsonsUrls[variable].text)
-      }
-    }
-  }
-  getJsons(filesList)
-}
+  return new Promise(function(resolve, reject) {
+    var filesList =[];
+    for (var variable in jsonsUrls) {
+      if (jsonsUrls.hasOwnProperty(variable)) {
+        if (jsonsUrls[variable].text.indexOf(".json")>-1) {
+          filesList.push(jsonsUrls[variable].text)
+        };
+      };
+    };
+    resolve(filesList);
+  });
+};
 
 function getJsons(filesList){
-  var requestArray = [];
-  for (var i = 0; i < filesList.length; i++){
-    requestArray.push(sendRequest(filesList[i]))
-  }
-  sendAllRequests(requestArray)
-}
+  return new Promise(function(resolve, reject) {
+    var requestsArray = [];
+    for (var i = 0; i < filesList.length; i++){
+      requestsArray.push(sendRequest(filesList[i]))
+    }
+    resolve(requestsArray)
+  });
+};
 
-function sendAllRequests(requestArray) {
-  Promise.all(requestArray).then(function (jsonData) {
-    var jsonDataArray = [];
-    jsonData.forEach(function(element) {
-      jsonDataArray.push(writeJsonFile(element.rawData,element.jsonUrl))
+function sendAllRequests(requestsArray) {
+  return new Promise(function(resolve, reject) {
+    return Promise.all(requestsArray).then(function (jsonData) {
+      var jsonDataArray = [];
+      jsonData.forEach(function(element) {
+        jsonDataArray.push(writeJsonFile(element.rawData,element.jsonUrl))
+      })
+      resolve(jsonDataArray)
+    }).catch(function (err) {
+      console.log(err);
+      reject(err)
     })
-    writeAllJsonFiles(jsonDataArray);
-  }).catch(function (err) {
-    console.log(err);
-  })
-}
+  });
+};
 
 function writeAllJsonFiles(jsonDataArray) {
-  Promise.all(jsonDataArray).then(function (data) {
-    console.log(data);
-    console.log('\x1b[34m','FINISHED SAVING ALL THE JSONS');
-    process.exit()
-  }).catch(function (e) {
-    console.log(e);
-  })
-}
+  return new Promise(function(resolve, reject) {
+    return Promise.all(jsonDataArray).then(function (data) {
+      resolve(data)
+      console.log('\x1b[34m','FINISHED SAVING ALL THE JSONS');
+    }).catch(function (e) {
+      console.log(e);
+      reject(e)
+    })
+  });
+};
 
 function sendRequest(jsonUrl) {
   return new Promise(function(resolve, reject) {
     https.get(`${jsonRoot}${jsonUrl}`, (res) => {
       console.log(`${jsonUrl} statusCode: ${res.statusCode}` );
-      // console.log('headers:', res.headers);
       var rawData = '';
       res.on('data', (chunk) => {
         rawData += chunk;
@@ -112,7 +143,7 @@ function sendRequest(jsonUrl) {
       console.error(e);
     });
   });
-}
+};
 
 function writeJsonFile(rawData,jsonUrl) {
   return new Promise(function(resolve, reject) {
@@ -120,15 +151,15 @@ function writeJsonFile(rawData,jsonUrl) {
       if(err) {
         console.log(err);
         reject(err)
-      }
-      // console.log(`The file ${jsonUrl} was saved!`);
+      };
+      console.log(`The file ${jsonUrl} was saved!`);
       resolve(`The file ${jsonUrl} was saved!`)
     });
   });
-}
+};
 
 http.listen(port,function (err) {
   if (err) return console.log(err);
   console.log(`Server corriendo en el puerto ${port}`);
-  askUrl()
+  processHandler();
 })
