@@ -38,7 +38,6 @@ function askUrl(){
   return new Promise(function(resolve, reject) {
     let consoleQuestion = 'Inserta la url al directorio raiz de los jsons EJ: "https://project-dev.server.com/web/sqlite/json/" :\n'
     rl.question(consoleQuestion, (userInput) => {
-      console.log({userInput});
       jsonRoot = userInput.endsWith('/') ? userInput : userInput+'/';
       rl.close();
       resolve()
