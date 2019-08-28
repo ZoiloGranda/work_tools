@@ -37,8 +37,10 @@ async function askQuestions() {
   var formatedDaysToReport = await formatDaysToReport();
   await askMonth();
   await askHash();
-  startProcess()
-  return
+  var page = await initBrowser();
+  page = await login(page);
+  var navigateCommits = await startNavigation(page);
+  // await startProcess();
  } catch (e) {
   console.log('error');
   console.log(e);
@@ -90,15 +92,21 @@ function askHash() {
  });
 };
 
-async function startProcess() {
- const browser = await puppeteer.launch({
-  executablePath:environment_data.chrome_path,
-  headless:false,
-  slowMo:100, 
-  devtools:true,
-  timeout:90000
+async function initBrowser() {
+ return new Promise(function(resolve, reject) {
+  const browser = puppeteer.launch({
+   executablePath:environment_data.chrome_path,
+   headless:false,
+   slowMo:100, 
+   devtools:true,
+   timeout:90000
+  });
+  const page = browser.newPage();
+  resolve(page)
  });
- const page = await browser.newPage();
+}
+
+async function login(page) {
  await page.goto('https://connexient.beanstalkapp.com/session/new');
  await page.focus('#username')
  await page.keyboard.type(environment_data.bs_username)
@@ -106,9 +114,8 @@ async function startProcess() {
  await page.keyboard.type(environment_data.bs_password)
  await page.click('input[type="submit"]')
  await page.goto(`https://connexient.beanstalkapp.com/search?u=${environment_data.bs_userid}`);
-  var navigateCommits = await startNavigation(page);
-  // await browser.close();
- };
+  resolve(page);
+ }
  
  async function startNavigation(page, alreadyCheckedNextPage, pendingCommits) {
   var commitsInCurrentPage = await getAllCommitsFromPage(page);
