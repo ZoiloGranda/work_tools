@@ -39,7 +39,9 @@ async function askQuestions() {
   await askHash();
   var page = await initBrowser();
   page = await login(page);
-  var navigateCommits = await startNavigation(page);
+  var commitsInCurrentPage = await getAllCommitsFromPage(page)
+  var commitsToReport = await checkCommits({commitsInCurrentPage, alreadyCheckedNextPage})
+  // var navigateCommits = await startNavigation(page);
   // await startProcess();
  } catch (e) {
   console.log('error');
@@ -114,18 +116,17 @@ async function login(page) {
  await page.keyboard.type(environment_data.bs_password)
  await page.click('input[type="submit"]')
  await page.goto(`https://connexient.beanstalkapp.com/search?u=${environment_data.bs_userid}`);
-  resolve(page);
+  return(page);
  }
  
  async function startNavigation(page, alreadyCheckedNextPage, pendingCommits) {
-  var commitsInCurrentPage = await getAllCommitsFromPage(page);
-  var commitsToReport = await checkCommits(commitsInCurrentPage, alreadyCheckedNextPage)
+  // var commitsInCurrentPage = await getAllCommitsFromPage(page);
+  // var commitsToReport = await checkCommits(commitsInCurrentPage, alreadyCheckedNextPage)
   if (commitsToReport) {
    if (pendingCommits) {
     commitsToReport = commitsToReport.concat(pendingCommits);
    }
    var formatedPostData = await prepareCommitsForOneDay(commitsToReport,datesToReport.days,page);
-   debugger;
    await sendData(formatedPostData);
   } else {
    if (pageToNavigate<=maxPagesToNavigate) {
@@ -138,7 +139,7 @@ async function login(page) {
    }
   }
   
-  function getAllCommitsFromPage(page){
+  async function getAllCommitsFromPage(page){
    return page.evaluate(()=> {
     var allCommitsElements = $('.rev-comment p a');
     var formatedCommits =[];
@@ -153,28 +154,36 @@ async function login(page) {
     return formatedCommits;
    }).then(function (data) {
     return data
-   }).catch(function (e) {
-    console.log('Error');
-    console.log(e);
    })
   }
   
-  async function checkCommits(commitsInCurrentPage, alreadyCheckedNextPage) {
-   if (alreadyCheckedNextPage) {
-    return commitsInCurrentPage;
+  //params = commitsInCurrentPage, alreadyCheckedNextPage
+  async function checkCommits(params) {
+   if (params.alreadyCheckedNextPage) {
+    return params.commitsInCurrentPage;
    }
    var found = false;
-   for (var commit in commitsInCurrentPage) {
-    if (commitsInCurrentPage.hasOwnProperty(commit)) {
-     var currentCommitHash = commitsInCurrentPage[commit].message.slice(0,8)
+   for (var commit in params.commitsInCurrentPage) {
+    if (params.commitsInCurrentPage.hasOwnProperty(commit)) {
+     var currentCommitHash = params.commitsInCurrentPage[commit].message.slice(0,8)
      if (currentCommitHash === lastReportedCommit.hash) {
       //remove already reported commits
-      commitsInCurrentPage.splice(Number(commit));
-      return commitsInCurrentPage;
+      params.commitsInCurrentPage.splice(Number(commit));
+      return params.commitsInCurrentPage;
      }else {
       console.log('buscando ultimo commit reportado');
      }
     }
+   }
+   return false;
+  }
+  
+  //params = commitsToReport, pendingCommits
+  async function concatPendingCommits(params) {
+   var commitsToReport = params.commitsToReport;
+   var pendingCommits = params.pendingCommits;
+   if (commitsToReport && pendingCommits) {
+    return commitsToReport = commitsToReport.concat(pendingCommits);
    }
    return false;
   }
