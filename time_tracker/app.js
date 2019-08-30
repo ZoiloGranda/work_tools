@@ -33,8 +33,8 @@ const rl = readline.createInterface({
 
 async function askQuestions() {
  try {
-  var daysToReport = await askDays();
-  var formatedDaysToReport = await formatDaysToReport();
+  await askDays();
+  await formatDaysToReport();
   await askMonth();
   await askHash();
   var page = await initBrowser();
