@@ -8,7 +8,6 @@ const cmd = require('node-command-line');
 const readline = require('readline');
 const dotenv = require('dotenv').config();
 
-// var pageToNavigate = 2;
 // maxPagesToNavigate puede ser cualquier valor, solamente quiere decir
 // que va a navegar hasta esa pagina buscando el ultimo hash reportado
 var maxPagesToNavigate = 16;
@@ -20,10 +19,11 @@ var datesToReport = {
  month:''
 };
 var environment_data = {
- bs_username:process.env.BEANSTALK_USERNAME,
- bs_password:process.env.BEANSTALK_PASSWORD,
- bs_userid:process.env.BEANSTALK_USERID,
- chrome_path:process.env.CHROME_EXECUTABLE_PATH
+ bs_username: process.env.BEANSTALK_USERNAME,
+ bs_password: process.env.BEANSTALK_PASSWORD,
+ bs_userid: process.env.BEANSTALK_USERID,
+ chrome_path: process.env.CHROME_EXECUTABLE_PATH,
+ last_reported_commit: process.env.LAST_REPORTED_COMMIT
 }
 
 const rl = readline.createInterface({
@@ -33,6 +33,8 @@ const rl = readline.createInterface({
 
 async function askQuestions() {
  try {
+  console.log(environment_data.last_reported_commit);
+  console.log(typeof environment_data.last_reported_commit);
   await askDays();
   await formatDaysToReport();
   await askMonth();
@@ -41,7 +43,6 @@ async function askQuestions() {
   page = await login(page);
   var commitsToReport = false;
   var pendingCommits = [];
-  // var commitsToReport = await searchForHash(page);
   do {
    commitsToReport = await searchForHash({page:page});
    if (commitsToReport === false) {
@@ -82,9 +83,7 @@ async function askQuestions() {
    });
   }
   await sendData(formatedPostData);
-  // var navigateCommits = await startNavigation(page);
-  // await startProcess();
-  
+  await saveLastReportedCommit(commitsToReport);
  } catch (e) {
   console.log('error');
   console.log(e);
@@ -140,12 +139,16 @@ function askMonth() {
 
 function askHash() {
  return new Promise(function(resolve, reject) {
-  consoleQuestion = 'Ultimo Hash reportado en el timetracker :\n'
-  rl.question(consoleQuestion, (userInput) => {
-   lastReportedCommit.hash = userInput;
-   rl.close();
+  if (environment_data.last_reported_commit === '') {
+   consoleQuestion = 'Ultimo Hash reportado en el timetracker :\n'
+   rl.question(consoleQuestion, (userInput) => {
+    environment_data.last_reported_commit = userInput;
+    rl.close();
+    resolve()
+   });
+  } else {
    resolve()
-  });
+  }
  });
 };
 
@@ -192,7 +195,6 @@ async function login(page) {
   })
  }
  
- //params = commitsInCurrentPage, alreadyCheckedNextPage
  async function checkCommits(params) {
   if (params.alreadyCheckedNextPage) {
    return params.commitsInCurrentPage;
@@ -201,7 +203,7 @@ async function login(page) {
   for (var commit in params.commitsInCurrentPage) {
    if (params.commitsInCurrentPage.hasOwnProperty(commit)) {
     var currentCommitHash = params.commitsInCurrentPage[commit].message.slice(0,8)
-    if (currentCommitHash === lastReportedCommit.hash) {
+    if (currentCommitHash === environment_data.last_reported_commit) {
      //remove already reported commits
      params.commitsInCurrentPage.splice(Number(commit));
      return params.commitsInCurrentPage;
@@ -225,11 +227,13 @@ async function login(page) {
  
  //params = commitsToReport, dayToReport
  async function prepareCommitsForOneDay(params){
+  console.log({params});
   var commitsToReport = params.commitsToReport;
   var dayToReport = params.datesToReportDays;
   // var page = params.page;
   var month = datesToReport.month
   if (commitsToReport.length >=3) {
+   lastReportedCommit = commitsToReport
    var descriptionString = '';
    for (var i = commitsToReport.length-1; i >= commitsToReport.length-3; i--) {
     descriptionString= `${descriptionString}${commitsToReport[i].message} `
@@ -239,17 +243,6 @@ async function login(page) {
     description: descriptionString
    }
    return postData
-  }  else if(commitsToReport.length ===0){
-   //se llego a la pagina con el ultimo commit reportado
-   //pero ese es el ultimo commit de la pagina, asi que va navegar a 
-   // la pagina anterior
-   console.log('commitsToReport en el else 0',commitsToReport.length);
-   return({status:0})
-   // goToPreviousPage(page);
-  } else {
-   console.log('quedan 1 o 2 commits en esta pagina nada mas');
-   return({status:1})
-   // goToPreviousPage(page, commitsToReport);
   }
  }
  
@@ -262,11 +255,9 @@ async function login(page) {
     currentPage = Number(currentPage);
     return currentPage;
    })
-   console.log('currentPage ', currentPage);
+   console.log({currentPage});
    if (currentPage >=2) {
-    console.log({currentPage});
     var pageToNavigate = currentPage - 1;
-    console.log({pageToNavigate});
     await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate}&u=523487`,{waitUntil: 'load', timeout: 0});
      resolve(page)
     }else if (currentPage === 1) {
@@ -286,7 +277,6 @@ async function login(page) {
      currentPage = Number(currentPage);
      return currentPage;
     })
-    console.log(typeof currentPage);
     console.log({currentPage});
     var pageToNavigate = currentPage + 1;
     await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate}&u=523487`,{waitUntil: 'load', timeout: 0});
@@ -304,6 +294,11 @@ async function login(page) {
     'ctl00%24ContentPlaceHolder%24txtFrom=${formatedPostData.dayToReport}%2F${datesToReport.month}%2F2019&ctl00%24ContentPlaceHolder%24idProyectoDropDownList=197&ctl00%24ContentPlaceHolder%24TiempoTextBox=8&ctl00%24ContentPlaceHolder%24idTipoAsignacionDropDownList=1&ctl00%24ContentPlaceHolder%24DescripcionTextBox=${description}&ctl00%24ContentPlaceHolder%24idFocalPointClientDropDownList=10030&ctl00%24ContentPlaceHolder%24btnAceptar=Accept&__EVENTTARGET=&__EVENTARGUMENT=&__LASTFOCUS=&__VIEWSTATE=%2FwEPDwUKMTk4MzU4MDI0NQ9kFgJmD2QWAgIDD2QWAgIFD2QWAgIDD2QWAmYPZBYWAgEPDxYCHgdWaXNpYmxlaGQWBgIBDxAPFgQeB0VuYWJsZWRoHwBoZGRkZAIDDw8WAh8AaGRkAgUPDxYCHwBoZGQCBA8WAh4MU2VsZWN0ZWREYXRlBgBAlUcR1NZIZAIFDw8WAh8AaGQWAgIBDw8WAh4EVGV4dGVkZAIGDw8WAh8AaGRkAggPEA8WAh4LXyFEYXRhQm91bmRnZBAVAwATQmFpcmVzRGV2IC0gQWJzZW5jZRdDb25uZXhpZW50IC0gQ29ubmV4aWVudBUDAAE0AzE5NxQrAwNnZ2dkZAIKDw9kDxAWAWYWARYCHg5QYXJhbWV0ZXJWYWx1ZSgpWVN5c3RlbS5JbnQ2NCwgbXNjb3JsaWIsIFZlcnNpb249NC4wLjAuMCwgQ3VsdHVyZT1uZXV0cmFsLCBQdWJsaWNLZXlUb2tlbj1iNzdhNWM1NjE5MzRlMDg5BDE0MzYWAQIFZGQCDA8PFgIfAwUBOGRkAg8PEA8WAh8EZ2QQFSUAEkFjY291bnQgTWFuYWdlbWVudA5BZG1pbmlzdHJhdGlvbhNBcHBsaWNhbnRzIFNvdXJjaW5nC0NhbGwgQ2VudGVyGENvZGluZyBDaGFsbGVuZ2VzIFJldmlldyZDb21tdW5pY2F0aW9uIChuZXdzbGV0dGVyLCBub3RhcywgZXRjKRhDb25maWd1cmF0aW9uIE1hbmFnZW1lbnQKRGF0YSBFbnRyeQNEQkEVRXhlY3V0aXZlIEhlYWRodW50aW5nCkZhY2lsaXRpZXMXRmFybWluZyAtIFN0YWZmaW5nIEhlcm8HRmluYW5jZRFIZWxwIERlc2svU3VwcG9ydA9IdW1hbiBSZXNvdXJjZXMXSW5mcmFzdHJ1Y3R1cmUvSGFyZHdhcmUKTWFuYWdlbWVudAlNYXJrZXRpbmcJTWVudG9yaW5nFk9uIEJvYXJkaW5nICYgVHJhaW5pbmcOT24gQ2FsbCBEdXRpZXMIUHJlc2FsZXMLUmVjcnVpdG1lbnQSUmVwb3J0cyBHZW5lcmF0aW9uBVNhbGVzDVNhbGVzIFN1cHBvcnQbU2luIHRhcmVhcyBhc2lnbmFkYXMgLyBJZGxlFFNvZnR3YXJlIERldmVsb3BtZW50CFNvdXJjaW5nCFN0YWZmaW5nFFRlY2huaWNhbCBJbnRlcnZpZXdzFFRlY2huaWNhbCBJbnRlcnZpZXdzC1Rlc3QgUmV2aWV3B1Rlc3RpbmcIVHJhaW5pbmcUVUkvVVgvR3JhcGhpYyBEZXNpZ24VJQACMjEBNgIzMQE3AjM0AjExAjE1AjE3AjE0AjMwAjI1AjI5AjIzAjIyAjI3AjE2ATUCMjACNDMCMzgCMzkCNDEBMgE4AjE5AjM3ATkBMQIzNgIyNAIzMgI0MgIzMwIxMwE0AjEwFCsDJWdnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dnZ2dkZAIRDw9kDxAWAWYWARYCHwUFAzE5NxYBZmRkAhYPEA8WAh8EZ2QQFQMAEE5ldmlsbGUgT3JlbGxhbmEMU3JkamFuIERha2ljFQMABTEwMDMwBTEwMTQwFCsDA2dnZ2RkAhgPD2QPEBYBZhYBFgIfBQUDMTk3FgFmZGRkp53CNATxhU4%2BTHuDQxCPSjCx6uV7Z3BYXSZxRfhtlKU%3D&__VIEWSTATEGENERATOR=36DF8DAE&__EVENTVALIDATION=%2FwEdADFb4T63K9r56fvaZZklyc1A4x8AhbDk1OuzysNknnQllt3X1JqGigG7nsR3K2Z9atJZSl7umE462MZQuzch1tKgkevvYD%2FDAmEpbWCvpydC7YshYDBjI3ie7zA3v%2BBHt7Awi8AYCwa4v8vSp7qSuJkFJb6kBb1rJj1apcIu08munXHgaJAZZ96SjfBckRmOzITe44rLG4YBmmG4AgvMVNEe4TXZugaVO6S7Aeb5DmHbWcLWxRTqsh2wLosomSjksGU7cZyTSvQuVhk11%2BiMPlkHrGfSEF2HOoK2tZwfwhGko7ncXudicreAtE3COS6c%2Bbu9wAgZAMDqNRYixGi%2BHas88yYoveIKIL1hn8APRGfKyAp9b31jDLJui%2FUQp0V658weFpM0rV9IhDfmlWDsCa22mjLpabdRUN758Od0yw0K3m7LAKoqO%2B9e%2FUI9wQUzzYraFpuurrchrO9sG3EOx9%2BR5y%2FMe4RRaN2yaO%2F1gOYoqKixbpLrd5b1tQP4pikN8PKegbjAn%2Bk%2F8%2BstwNbJWypxyCAwpWvdCqtJfHU5T71AustJBzAvMkin1DcArkj6rIMhhN9hFhGhYa5KmlA2jFjiHlOeoE8t0cJijVsy9VdXQgBVcnAYrD7IdROOSdbS%2FDhu6jsm%2FUl5bdVCZs0RyOs7BrEH6H6mOEMWCkOlFML39Bs6l4dxwD%2BNDla8IsmNsBD3VltifgynrUGF7%2BNxB%2Bl0Hr6MhusWmpTtwtQDOfDNCmPUAcpc736HgJ4wcBzTuGZzkFAGgsnCfREYMubEu2tXutg8Cwtw572d8hsjLnr%2B2w72bRO5u6TvwAi8vdRowwyQFvQ1eq%2Blwx45IBCJw6KhRc05tq%2BoQ2XXjuKXrNr1N86H1hvDRiN5TipVdL5DY1o4tlzkkC7n8LZbyf2ZWW3I566B2K8yxWPAP6R1sL1ddjpHBhlm5iiFrBwTlRaNr8Pd1ivuUr3JK5%2BmQ7zQN1G7LSsfHlGr7WShjRDnEGD%2BLvu9ECW%2F8l%2FOLmeIWwlw8S06%2FjFVpjiXesatN%2B82YwQ2KVae%2BMqglvmDNxNbGu%2BVmUM93l%2Ftqp8WneqeNVtY%2F98%3D' --compressed`);
    };
    
+   
+   async function saveLastReportedCommit(commitsToReport){
+    var currentLastCommit = commitsToReport[3];
+    
+   }
    http.listen(port,function (err) {
     if (err) return console.log(err);
     console.log(`Server corriendo en el puerto ${port}`);
