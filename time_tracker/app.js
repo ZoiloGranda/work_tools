@@ -7,13 +7,11 @@ const puppeteer = require('puppeteer-core');
 const cmd = require('node-command-line');
 const readline = require('readline');
 const dotenv = require('dotenv').config();
+const fs = require('fs');
 
 // maxPagesToNavigate puede ser cualquier valor, solamente quiere decir
 // que va a navegar hasta esa pagina buscando el ultimo hash reportado
 var maxPagesToNavigate = 16;
-var lastReportedCommit ={
- hash: '',
-};
 var datesToReport = {
  days:'',
  month:''
@@ -33,8 +31,6 @@ const rl = readline.createInterface({
 
 async function askQuestions() {
  try {
-  console.log(environment_data.last_reported_commit);
-  console.log(typeof environment_data.last_reported_commit);
   await askDays();
   await formatDaysToReport();
   await askMonth();
@@ -83,7 +79,7 @@ async function askQuestions() {
    });
   }
   await sendData(formatedPostData);
-  await saveLastReportedCommit(commitsToReport);
+  await saveLastReportedCommit({commitsToReport:commitsToReport});
  } catch (e) {
   console.log('error');
   console.log(e);
@@ -227,13 +223,11 @@ async function login(page) {
  
  //params = commitsToReport, dayToReport
  async function prepareCommitsForOneDay(params){
-  console.log({params});
   var commitsToReport = params.commitsToReport;
   var dayToReport = params.datesToReportDays;
   // var page = params.page;
   var month = datesToReport.month
   if (commitsToReport.length >=3) {
-   lastReportedCommit = commitsToReport
    var descriptionString = '';
    for (var i = commitsToReport.length-1; i >= commitsToReport.length-3; i--) {
     descriptionString= `${descriptionString}${commitsToReport[i].message} `
@@ -295,10 +289,17 @@ async function login(page) {
    };
    
    
-   async function saveLastReportedCommit(commitsToReport){
-    var currentLastCommit = commitsToReport[3];
-    
+   async function saveLastReportedCommit(params){
+    var lastCommitHash = params.commitsToReport[3].message.slice(0,8);
+    console.log({lastCommitHash});
+    fs.readFile(`./.env`, 'utf-8',(err, contents) => {
+     var startPosition = contents.indexOf('LAST_REPORTED_COMMIT')+21;
+     var bufferedText = new Buffer(lastCommitHash);
+     var file = fs.openSync('./.env','r+');
+     fs.writeSync(file, bufferedText,0, bufferedText.length, startPosition) 
+    });
    }
+   
    http.listen(port,function (err) {
     if (err) return console.log(err);
     console.log(`Server corriendo en el puerto ${port}`);
