@@ -37,6 +37,18 @@ async function askQuestions() {
   await askHash();
   var page = await initBrowser();
   page = await login(page);
+  console.log({datesToReport});
+ } catch (e) {
+  console.log('error');
+  console.log(e);
+  return
+ } finally {
+  startNavigation(page)
+ }
+}
+
+async function startNavigation(page) {
+ try {
   var commitsToReport = false;
   var pendingCommits = [];
   do {
@@ -67,23 +79,15 @@ async function askQuestions() {
   }
   var formatedPostData = await prepareCommitsForOneDay({
    commitsToReport:commitsToReport,
-   datesToReportDays:datesToReport.days,
+   datesToReportDays:datesToReport.days[0],
    page:page
   });
-  if (formatedPostData.status === 0) {
-   await goToPreviousPage({page:formatedPostData.page});
-  } else if (formatedPostData.status === 1) {
-   await goToPreviousPage({
-    page:formatedPostData.page,
-    commitsToReport:formatedPostData.commitsToReport
-   });
-  }
   await sendData(formatedPostData);
-  await saveLastReportedCommit({commitsToReport:commitsToReport});
+  await saveLastReportedCommit({lastCommitHash:formatedPostData.lastCommitHash});
+  datesToReport.days.shift()// removes reported day
  } catch (e) {
   console.log('error');
   console.log(e);
-  return
  } finally {
   
  }
@@ -228,13 +232,15 @@ async function login(page) {
   // var page = params.page;
   var month = datesToReport.month
   if (commitsToReport.length >=3) {
+   var lastCommitHash = commitsToReport[commitsToReport.length-3].message.slice(0,8);
    var descriptionString = '';
    for (var i = commitsToReport.length-1; i >= commitsToReport.length-3; i--) {
     descriptionString= `${descriptionString}${commitsToReport[i].message} `
    }
    var postData = {
     dayToReport: dayToReport,
-    description: descriptionString
+    description: descriptionString,
+    lastCommitHash: lastCommitHash
    }
    return postData
   }
@@ -290,8 +296,7 @@ async function login(page) {
    
    
    async function saveLastReportedCommit(params){
-    var lastCommitHash = params.commitsToReport[3].message.slice(0,8);
-    console.log({lastCommitHash});
+    var lastCommitHash = params.lastCommitHash;
     fs.readFile(`./.env`, 'utf-8',(err, contents) => {
      var startPosition = contents.indexOf('LAST_REPORTED_COMMIT')+21;
      var bufferedText = new Buffer(lastCommitHash);
