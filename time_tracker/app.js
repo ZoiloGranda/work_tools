@@ -37,17 +37,20 @@ async function askQuestions() {
   await askHash();
   var page = await initBrowser();
   page = await login(page);
-  console.log({datesToReport});
  } catch (e) {
   console.log('error');
   console.log(e);
   return
  } finally {
-  startNavigation(page)
+  startNavigation({page:page})
  }
 }
 
-async function startNavigation(page) {
+async function startNavigation(params) {
+ var page = params.page;
+ if (params.lastCommitHash) {
+  environment_data.last_reported_commit = params.lastCommitHash;
+ }
  try {
   var commitsToReport = false;
   var pendingCommits = [];
@@ -85,11 +88,16 @@ async function startNavigation(page) {
   await sendData(formatedPostData);
   await saveLastReportedCommit({lastCommitHash:formatedPostData.lastCommitHash});
   datesToReport.days.shift()// removes reported day
+  console.log({datesToReport});
  } catch (e) {
   console.log('error');
   console.log(e);
  } finally {
-  
+  if (datesToReport.days.length > 0) {
+   startNavigation({page:page, lastCommitHash:formatedPostData.lastCommitHash});
+  } else {
+   console.log('Se terminaron los dias que reportar');
+  }
  }
 }
 
