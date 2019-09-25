@@ -320,14 +320,7 @@ async function login(page) {
      var headers = {
       'Connection':'keep-alive',
       'Content-Type':'application/x-www-form-urlencoded',
-      'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
-      'Sec-Fetch-Site':'same-origin',
-      'Origin': 'https://timetracker.bairesdev.com',
-      'Referer': 'https://timetracker.bairesdev.com/',
       'Cookie':'ASP.NET_SessionId=pkitlwsrywi3soyyhmiz2zhn; idProyectoAnterior=197; idTipoAsignacionAnterior=1; idFocalPointAnterior=10030',
-      'Accept-Encoding':'gzip, deflate',
-      'User-Agent':'PostmanRuntime/7.17.1',
-      'Upgrade-Insecure-Requests': '1'
      }
      axios({
       method:'post',
@@ -336,8 +329,8 @@ async function login(page) {
       headers:headers
      })
      .then(function (response) {
-      resolve();
       console.log('SUCCESS');
+      resolve();
       // console.log(response.statusText);
      })
      .catch(function (error) {
@@ -351,7 +344,7 @@ async function login(page) {
     var lastCommitHash = params.lastCommitHash;
     fs.readFile(`./.env`, 'utf-8',(err, contents) => {
      var startPosition = contents.indexOf('LAST_REPORTED_COMMIT')+21;
-     var bufferedText = new Buffer(lastCommitHash);
+     var bufferedText = Buffer.from(lastCommitHash);
      var file = fs.openSync('./.env','r+');
      fs.writeSync(file, bufferedText,0, bufferedText.length, startPosition) 
     });
