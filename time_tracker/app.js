@@ -64,7 +64,7 @@ async function startNavigation(params) {
    //if commitsToReport.length === 0 es porque el ultimo commit reportado es el ultimo commit de esa pagina
    page = await goToPreviousPage(page)
    commitsToReport = await searchForHash({page:page,alreadyCheckedNextPage:true});
-  } else if (commitsToReport.length >= 1 && commitsToReport.length <= 2) {
+  } else if (commitsToReport.length >= 1 && commitsToReport.length <= 3) {
    page = await goToPreviousPage(page)
    pendingCommits = commitsToReport;
    commitsToReport = await searchForHash({page:page,alreadyCheckedNextPage:true});
@@ -237,10 +237,10 @@ async function login(page) {
   var dayToReport = params.datesToReportDays;
   // var page = params.page;
   var month = datesToReport.month
-  if (commitsToReport.length >=3) {
-   var lastCommitHash = commitsToReport[commitsToReport.length-3].message.slice(0,8);
+  if (commitsToReport.length >=4) {
+   var lastCommitHash = commitsToReport[commitsToReport.length-4].message.slice(0,8);
    var descriptionString = '';
-   for (var i = commitsToReport.length-1; i >= commitsToReport.length-3; i--) {
+   for (var i = commitsToReport.length-1; i >= commitsToReport.length-4; i--) {
     descriptionString= `${descriptionString}${commitsToReport[i].message} `
    }
    var postData = {
@@ -330,8 +330,8 @@ async function login(page) {
      })
      .then(function (response) {
       console.log('SUCCESS');
+      console.log(response);
       resolve();
-      // console.log(response.statusText);
      })
      .catch(function (error) {
       console.log(error);
