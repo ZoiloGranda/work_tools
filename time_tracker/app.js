@@ -97,6 +97,7 @@ async function startNavigation(params) {
    startNavigation({page:page, lastCommitHash:formatedPostData.lastCommitHash});
   } else {
    console.log('Se terminaron los dias que reportar');
+   process.exit();
   }
  }
 }
