@@ -4,12 +4,12 @@ const http = require('http').Server(app)
 const port = 8080;
 const https = require('https');
 const puppeteer = require('puppeteer-core');
-const readline = require('readline');
 const dotenv = require('dotenv').config();
 const fs = require('fs');
 const axios = require('axios');
 const querystring = require('querystring');
 const forced_params = require('./forced_params');
+const {askDays, askMonth, askHash} = require('./questions');
 
 var numberOfCommits = 6;
 var datesToReport = {
@@ -24,17 +24,12 @@ var environment_data = {
  last_reported_commit: process.env.LAST_REPORTED_COMMIT
 }
 
-const rl = readline.createInterface({
- input: process.stdin,
- output: process.stdout
-});
-
 async function askQuestions() {
  try {
-  await askDays();
+  datesToReport.days = await askDays();
+  datesToReport.month = await askMonth();
+  environment_data.last_reported_commit = environment_data.last_reported_commit||await askHash();
   await formatDaysToReport();
-  await askMonth();
-  await askHash();
   var page = await initBrowser();
   page = await login(page);
  } catch (e) {
@@ -116,50 +111,15 @@ async function searchForHash(params) {
  });
 }
 
-async function askDays(){
- return new Promise(function(resolve, reject) {
-  let consoleQuestion = `Que dias vas a reportar? solo numeros con 0 adelante si es menor de 10.
-  Si es mas de uno, separarlos con coma: \n`
-  rl.question(consoleQuestion, (userInput) => {
-   datesToReport.days = userInput;
-   resolve();
-  });
- });
-}
-
-async function formatDaysToReport(){
+function formatDaysToReport(){
  return new Promise(function(resolve, reject) {
   datesToReport.days.toString();
   var daysToArray = datesToReport.days.split(',');
   datesToReport.days = daysToArray;
+  console.log(datesToReport);
   resolve();
  });
 }
-
-function askMonth() {
- return new Promise(function(resolve, reject) {
-  let consoleQuestion = 'Que mes? solo uno, en numero, con 0 adelante si es menor de 10 :\n'
-  rl.question(consoleQuestion, (userInput) => {
-   datesToReport.month = userInput;
-   resolve();
-  });
- });
-}
-
-function askHash() {
- return new Promise(function(resolve, reject) {
-  if (environment_data.last_reported_commit === '') {
-   consoleQuestion = 'Ultimo Hash reportado en el timetracker :\n'
-   rl.question(consoleQuestion, (userInput) => {
-    environment_data.last_reported_commit = userInput;
-    rl.close();
-    resolve()
-   });
-  } else {
-   resolve()
-  }
- });
-};
 
 async function initBrowser() {
  return new Promise( async function(resolve, reject) {
