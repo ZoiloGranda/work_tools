@@ -11,7 +11,7 @@ const querystring = require('querystring');
 const forced_params = require('./forced_params');
 const {askDays, askMonth, askHash} = require('./questions');
 
-var numberOfCommits = 6;
+var numberOfCommits = 5;
 var datesToReport = {
  days:'',
  month:''
@@ -29,6 +29,7 @@ async function askQuestions() {
   datesToReport.days = await askDays();
   datesToReport.month = await askMonth();
   environment_data.last_reported_commit = environment_data.last_reported_commit||await askHash();
+  console.log(environment_data.last_reported_commit);
   await formatDaysToReport();
   var page = await initBrowser();
   page = await login(page);
@@ -82,6 +83,7 @@ async function startNavigation(params) {
   });
   var formatedParams = await formatRequest(formatedPostData)
   await sendData(formatedParams);
+  console.log({formatedPostData});
   await saveLastReportedCommit({lastCommitHash:formatedPostData.lastCommitHash});
   datesToReport.days.shift()// removes reported day
   console.log({datesToReport});
@@ -198,7 +200,6 @@ async function login(page) {
  async function prepareCommitsForOneDay(params){
   var commitsToReport = params.commitsToReport;
   var dayToReport = params.datesToReportDays;
-  // var page = params.page;
   var month = datesToReport.month
   if (commitsToReport.length >= numberOfCommits) {
    var lastCommitHash = commitsToReport[commitsToReport.length-numberOfCommits].message.slice(0,8);
@@ -206,6 +207,7 @@ async function login(page) {
    for (var i = commitsToReport.length-1; i >= commitsToReport.length-numberOfCommits; i--) {
     descriptionString= `${descriptionString}${commitsToReport[i].message} `
    }
+   console.log({lastCommitHash});
    var postData = {
     dayToReport: dayToReport,
     description: descriptionString,
@@ -271,6 +273,8 @@ async function login(page) {
      }
      var dataAsQueryString = querystring.stringify(data);
      var descriptionParamQS = querystring.stringify({ctl00$ContentPlaceHolder$DescripcionTextBox:''});
+     //the description has a 500 character limit on timetracker
+     description = description.substring(0, 500);
      var fullDescription = descriptionParamQS+description;
      dataAsQueryString = dataAsQueryString+'&'+fullDescription;
      resolve(dataAsQueryString)
@@ -292,9 +296,14 @@ async function login(page) {
       headers:headers
      })
      .then(function (response) {
-      console.log('SUCCESS');
-      console.log(response.data);
-      resolve();
+      console.log(response.request.res.responseUrl);
+      if (response.request.res.responseUrl==='https://timetracker.bairesdev.com/CargaTimeTracker.aspx') {
+       reject('Time not saved')
+      } else {
+       // response.request.res.responseUrl==='https://timetracker.bairesdev.com/ListaTimeTracker.aspx');
+       console.log('SUCCESS');
+       resolve();
+      }
      })
      .catch(function (error) {
       console.log(error);
@@ -304,12 +313,27 @@ async function login(page) {
    };
    
    async function saveLastReportedCommit(params){
-    var lastCommitHash = params.lastCommitHash;
-    fs.readFile(`./.env`, 'utf-8',(err, contents) => {
-     var startPosition = contents.indexOf('LAST_REPORTED_COMMIT')+21;
-     var bufferedText = Buffer.from(lastCommitHash);
-     var file = fs.openSync('./.env','r+');
-     fs.writeSync(file, bufferedText,0, bufferedText.length, startPosition) 
+    return new Promise(function(resolve, reject) {
+     var lastCommitHash = params.lastCommitHash;
+     fs.readFile(`./.env`, 'utf-8',(err, contents) => {
+      if (err) {
+       console.log('cannot read .env file');
+       console.log(err);
+       reject(err)
+      }
+      var startPosition = contents.indexOf('LAST_REPORTED_COMMIT')+21;
+      var bufferedText = Buffer.from(lastCommitHash);
+      var file = fs.openSync('./.env','r+');
+      fs.write(file, bufferedText,0, bufferedText.length, startPosition, function (err, writen, buffer) {
+       if (err) {
+        console.log('cannot write last commit on .env file');
+        console.log(err);
+        reject(err)
+       }
+       console.log(`Successfully writen ${writen} bytes on .env`);
+       resolve()
+      }) 
+     });
     });
    }
    
