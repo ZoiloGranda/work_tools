@@ -8,28 +8,29 @@ const dotenv = require('dotenv').config();
 const fs = require('fs');
 const axios = require('axios');
 const querystring = require('querystring');
-const forced_params = require('./forced_params');
+const {__VIEWSTATE,__EVENTVALIDATION, __HEADERS} = require('./forced_params');
 const {askDays, askMonth, askHash} = require('./questions');
 
-var numberOfCommits = 5;
 var datesToReport = {
  days:'',
  month:''
 };
-var environment_data = {
+
+var ENV = {
  bs_username: process.env.BEANSTALK_USERNAME,
  bs_password: process.env.BEANSTALK_PASSWORD,
  bs_userid: process.env.BEANSTALK_USERID,
  chrome_path: process.env.CHROME_EXECUTABLE_PATH,
- last_reported_commit: process.env.LAST_REPORTED_COMMIT
+ last_reported_commit: process.env.LAST_REPORTED_COMMIT,
+ number_of_commits:process.env.NUMBER_OF_COMMITS
 }
 
 async function askQuestions() {
  try {
   datesToReport.days = await askDays();
   datesToReport.month = await askMonth();
-  environment_data.last_reported_commit = environment_data.last_reported_commit||await askHash();
-  console.log(environment_data.last_reported_commit);
+  ENV.last_reported_commit = ENV.last_reported_commit||await askHash();
+  console.log(ENV.last_reported_commit);
   await formatDaysToReport();
   var page = await initBrowser();
   page = await login(page);
@@ -45,7 +46,7 @@ async function askQuestions() {
 async function startNavigation(params) {
  var page = params.page;
  if (params.lastCommitHash) {
-  environment_data.last_reported_commit = params.lastCommitHash;
+  ENV.last_reported_commit = params.lastCommitHash;
  }
  try {
   var commitsToReport = false;
@@ -62,7 +63,7 @@ async function startNavigation(params) {
    //if commitsToReport.length === 0 es porque el ultimo commit reportado es el ultimo commit de esa pagina
    page = await goToPreviousPage(page)
    commitsToReport = await searchForHash({page:page,alreadyCheckedNextPage:true});
-  } else if (commitsToReport.length >= 1 && commitsToReport.length <= numberOfCommits-1) {
+  } else if (commitsToReport.length >= 1 && commitsToReport.length <= ENV.number_of_commits-1) {
    page = await goToPreviousPage(page)
    pendingCommits = commitsToReport;
    commitsToReport = await searchForHash({page:page,alreadyCheckedNextPage:true});
@@ -126,7 +127,7 @@ function formatDaysToReport(){
 async function initBrowser() {
  return new Promise( async function(resolve, reject) {
   const browser = await puppeteer.launch({
-   executablePath:environment_data.chrome_path,
+   executablePath:ENV.chrome_path,
    headless:false,
    slowMo:100, 
    devtools:true,
@@ -140,11 +141,11 @@ async function initBrowser() {
 async function login(page) {
  await page.goto('https://connexient.beanstalkapp.com/session/new',{waitUntil: 'load', timeout: 0});
  await page.focus('#username')
- await page.keyboard.type(environment_data.bs_username)
+ await page.keyboard.type(ENV.bs_username)
  await page.focus('#password')
- await page.keyboard.type(environment_data.bs_password)
+ await page.keyboard.type(ENV.bs_password)
  await page.click('input[type="submit"]')
- await page.goto(`https://connexient.beanstalkapp.com/search?u=${environment_data.bs_userid}`);
+ await page.goto(`https://connexient.beanstalkapp.com/search?u=${ENV.bs_userid}`);
   return(page);
  }
  
@@ -174,7 +175,7 @@ async function login(page) {
   for (var commit in params.commitsInCurrentPage) {
    if (params.commitsInCurrentPage.hasOwnProperty(commit)) {
     var currentCommitHash = params.commitsInCurrentPage[commit].message.slice(0,8)
-    if (currentCommitHash === environment_data.last_reported_commit) {
+    if (currentCommitHash === ENV.last_reported_commit) {
      //remove already reported commits
      params.commitsInCurrentPage.splice(Number(commit));
      return params.commitsInCurrentPage;
@@ -201,10 +202,10 @@ async function login(page) {
   var commitsToReport = params.commitsToReport;
   var dayToReport = params.datesToReportDays;
   var month = datesToReport.month
-  if (commitsToReport.length >= numberOfCommits) {
-   var lastCommitHash = commitsToReport[commitsToReport.length-numberOfCommits].message.slice(0,8);
+  if (commitsToReport.length >= ENV.number_of_commits) {
+   var lastCommitHash = commitsToReport[commitsToReport.length-ENV.number_of_commits].message.slice(0,8);
    var descriptionString = '';
-   for (var i = commitsToReport.length-1; i >= commitsToReport.length-numberOfCommits; i--) {
+   for (var i = commitsToReport.length-1; i >= commitsToReport.length-ENV.number_of_commits; i--) {
     descriptionString= `${descriptionString}${commitsToReport[i].message} `
    }
    console.log({lastCommitHash});
@@ -268,8 +269,8 @@ async function login(page) {
       ctl00$ContentPlaceHolder$idTipoAsignacionDropDownList:1,
       ctl00$ContentPlaceHolder$idFocalPointClientDropDownList:10030,
       ctl00$ContentPlaceHolder$btnAceptar:'Accept',
-      __VIEWSTATE:forced_params.__VIEWSTATE,
-      __EVENTVALIDATION:forced_params.__EVENTVALIDATION
+      __VIEWSTATE:__VIEWSTATE,
+      __EVENTVALIDATION:__EVENTVALIDATION
      }
      var dataAsQueryString = querystring.stringify(data);
      var descriptionParamQS = querystring.stringify({ctl00$ContentPlaceHolder$DescripcionTextBox:''});
@@ -284,11 +285,7 @@ async function login(page) {
    async function sendData(queryStringParams) {
     return new Promise(function(resolve, reject) {
      console.log({queryStringParams});
-     var headers = {
-      'Connection':'keep-alive',
-      'Content-Type':'application/x-www-form-urlencoded',
-      'Cookie':'ASP.NET_SessionId=pkitlwsrywi3soyyhmiz2zhn; idProyectoAnterior=197; idTipoAsignacionAnterior=1; idFocalPointAnterior=10030',
-     }
+     var headers = __HEADERS;
      axios({
       method:'post',
       url:'https://timetracker.bairesdev.com/CargaTimeTracker.aspx',
