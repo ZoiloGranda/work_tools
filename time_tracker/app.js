@@ -1,8 +1,7 @@
 const express = require('express');
 const app = express()
-const http = require('http').Server(app)
 const port = 8080;
-const https = require('https');
+const https = require('https').Server(app)
 const puppeteer = require('puppeteer-core');
 const dotenv = require('dotenv').config();
 const fs = require('fs');
@@ -334,7 +333,7 @@ async function login(page) {
     });
    }
    
-   http.listen(port,function (err) {
+   https.listen(port,function (err) {
     if (err) return console.log(err);
     console.log(`Server corriendo en el puerto ${port}`);
     askQuestions();
