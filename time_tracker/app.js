@@ -9,6 +9,7 @@ const axios = require('axios');
 const querystring = require('querystring');
 const {__VIEWSTATE,__EVENTVALIDATION, __HEADERS} = require('./forced_params');
 const {askDays, askMonth, askHash} = require('./questions');
+const {searchForHash, getAllCommitsFromPage, checkCommits} = require('./helpers');
 
 var datesToReport = {
  days:'',
@@ -51,7 +52,10 @@ async function startNavigation(params) {
   var commitsToReport = false;
   var pendingCommits = [];
   do {
-   commitsToReport = await searchForHash({page:page});
+   commitsToReport = await searchForHash({
+    page:page,
+    lastReportedCommit:ENV.last_reported_commit
+   });
    if (commitsToReport === false) {
     page = await goToNextPage(page)
    }
@@ -61,11 +65,19 @@ async function startNavigation(params) {
   if (commitsToReport.length === 0) {
    //if commitsToReport.length === 0 es porque el ultimo commit reportado es el ultimo commit de esa pagina
    page = await goToPreviousPage(page)
-   commitsToReport = await searchForHash({page:page,alreadyCheckedNextPage:true});
+   commitsToReport = await searchForHash({
+    page:page,
+    alreadyCheckedNextPage:true,
+    lastReportedCommit:ENV.last_reported_commit
+   });
   } else if (commitsToReport.length >= 1 && commitsToReport.length <= ENV.number_of_commits-1) {
    page = await goToPreviousPage(page)
    pendingCommits = commitsToReport;
-   commitsToReport = await searchForHash({page:page,alreadyCheckedNextPage:true});
+   commitsToReport = await searchForHash({
+    page:page,
+    alreadyCheckedNextPage:true,
+    lastReportedCommit:ENV.last_reported_commit
+   });
   }
   if (pendingCommits.length!=0) {
    console.log({commitsToReport});
@@ -100,19 +112,6 @@ async function startNavigation(params) {
  }
 }
 
-async function searchForHash(params) {
- return new Promise(async function(resolve, reject) {
-  params.alreadyCheckedNextPage = params.alreadyCheckedNextPage||false;
-  var commitsInCurrentPage = await getAllCommitsFromPage(params.page)
-  var commitsToReport = await checkCommits({
-   commitsInCurrentPage:commitsInCurrentPage,
-   alreadyCheckedNextPage: params.alreadyCheckedNextPage
-  })
-  console.log('commitsToReport ',commitsToReport);
-  resolve(commitsToReport);
- });
-}
-
 function formatDaysToReport(){
  return new Promise(function(resolve, reject) {
   datesToReport.days.toString();
@@ -129,7 +128,7 @@ async function initBrowser() {
    executablePath:ENV.chrome_path,
    headless:false,
    slowMo:100, 
-   devtools:true,
+   devtools:false,
    timeout:30000
   });
   const page = browser.newPage();
@@ -148,45 +147,7 @@ async function login(page) {
   return(page);
  }
  
- async function getAllCommitsFromPage(page){
-  return page.evaluate(()=> {
-   var allCommitsElements = $('.rev-comment p a');
-   var formatedCommits =[];
-   for (var current in allCommitsElements) {
-    if (allCommitsElements.hasOwnProperty(current) && Number.isInteger(Number(current))) {
-     let commitData ={
-      message:allCommitsElements[current].innerText
-     };
-     formatedCommits.push(commitData)
-    }
-   }
-   return formatedCommits;
-  }).then(function (data) {
-   return data
-  })
- }
- 
- async function checkCommits(params) {
-  if (params.alreadyCheckedNextPage) {
-   return params.commitsInCurrentPage;
-  }
-  var found = false;
-  for (var commit in params.commitsInCurrentPage) {
-   if (params.commitsInCurrentPage.hasOwnProperty(commit)) {
-    var currentCommitHash = params.commitsInCurrentPage[commit].message.slice(0,8)
-    if (currentCommitHash === ENV.last_reported_commit) {
-     //remove already reported commits
-     params.commitsInCurrentPage.splice(Number(commit));
-     return params.commitsInCurrentPage;
-    }else {
-     console.log('buscando ultimo commit reportado');
-    }
-   }
-  }
-  return false;
- }
- 
- //params = commitsToReport, pendingCommits
+  //params = commitsToReport, pendingCommits
  async function concatPendingCommits(params) {
   var commitsToReport = params.commitsToReport;
   var pendingCommits = params.pendingCommits;
@@ -229,7 +190,7 @@ async function login(page) {
    console.log({currentPage});
    if (currentPage >=2) {
     var pageToNavigate = currentPage - 1;
-    await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate}&u=523487`,{waitUntil: 'load', timeout: 0});
+    await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate}&u=${ENV.bs_userid}`,{waitUntil: 'load', timeout: 0});
      resolve(page)
     }else if (currentPage === 1) {
      console.log('ya no hay mas paginas ni commits que revisar');
