@@ -178,7 +178,7 @@ async function login(page) {
   }
  }
  
- async function goToPreviousPage(page, commitsToReport) {
+ async function goToPreviousPage(page) {
   return new Promise(async function(resolve, reject) {
    var currentPage = await page.evaluate(function () {
     var url_string = window.location.href
@@ -211,7 +211,7 @@ async function login(page) {
     })
     console.log({currentPage});
     var pageToNavigate = currentPage + 1;
-    await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate}&u=523487`,{waitUntil: 'load', timeout: 0});
+    await page.goto(`https://connexient.beanstalkapp.com/search?page=${pageToNavigate}&u=${ENV.bs_userid}`,{waitUntil: 'load', timeout: 0});
      pageToNavigate++;
      resolve(page)
     });
