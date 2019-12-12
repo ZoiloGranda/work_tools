@@ -1,13 +1,13 @@
 const express = require('express');
 const app = express()
-const port = 8080;
+const port = 8085;
 const https = require('https').Server(app)
 const puppeteer = require('puppeteer-core');
 const dotenv = require('dotenv').config();
 const fs = require('fs');
 const axios = require('axios');
 const querystring = require('querystring');
-const {__VIEWSTATE,__EVENTVALIDATION, __HEADERS} = require('./forced_params');
+const {__VIEWSTATE,__EVENTVALIDATION, __HEADERS, __VIEWSTATEGENERATOR} = require('./forced_params');
 const {askDays, askMonth, askHash} = require('./questions');
 const {searchForHash, getAllCommitsFromPage, checkCommits} = require('./helpers');
 
@@ -230,7 +230,8 @@ async function login(page) {
       ctl00$ContentPlaceHolder$idFocalPointClientDropDownList:10030,
       ctl00$ContentPlaceHolder$btnAceptar:'Accept',
       __VIEWSTATE:__VIEWSTATE,
-      __EVENTVALIDATION:__EVENTVALIDATION
+      __EVENTVALIDATION:__EVENTVALIDATION,
+      __VIEWSTATEGENERATOR:__VIEWSTATEGENERATOR
      }
      var dataAsQueryString = querystring.stringify(data);
      var descriptionParamQS = querystring.stringify({ctl00$ContentPlaceHolder$DescripcionTextBox:''});
@@ -256,7 +257,7 @@ async function login(page) {
       console.log(response.request.res.responseUrl);
       if (response.request.res.responseUrl==='https://timetracker.bairesdev.com/CargaTimeTracker.aspx') {
        reject('Time not saved')
-      } else {
+      } else if(response.request.res.responseUrl==='https://timetracker.bairesdev.com/ListaTimeTracker.aspx'){
        // response.request.res.responseUrl==='https://timetracker.bairesdev.com/ListaTimeTracker.aspx');
        console.log('SUCCESS');
        resolve();

@@ -4,15 +4,18 @@
  
  var __EVENTVALIDATION = '/wEdADJU2sJ2vJ8BTnd8P8gAOLKa4x8AhbDk1OuzysNknnQllt3X1JqGigG7nsR3K2Z9atJZSl7umE462MZQuzch1tKgkevvYD/DAmEpbWCvpydC7YshYDBjI3ie7zA3v+BHt7Awi8AYCwa4v8vSp7qSuJkFJb6kBb1rJj1apcIu08munXHgaJAZZ96SjfBckRmOzITe44rLG4YBmmG4AgvMVNEe4TXZugaVO6S7Aeb5DmHbWcLWxRTqsh2wLosomSjksGU7cZyTSvQuVhk11+iMPlkHrGfSEF2HOoK2tZwfwhGko7ncXudicreAtE3COS6c+bu9wAgZAMDqNRYixGi+Has88yYoveIKIL1hn8APRGfKyAp9b31jDLJui/UQp0V658weFpM0rV9IhDfmlWDsCa22mjLpabdRUN758Od0yw0K3m7LAKoqO+9e/UI9wQUzzYraFpuurrchrO9sG3EOx9+R5y/Me4RRaN2yaO/1gOYoqKixbpLrd5b1tQP4pikN8PKegbjAn+k/8+stwNbJWypxyCAwpWvdCqtJfHU5T71AustJBzAvMkin1DcArkj6rIMhhN9hFhGhYa5KmlA2jFjiHlOeoE8t0cJijVsy9VdXQgBVcnAYrD7IdROOSdbS/Dhu6jsm/Ul5bdVCZs0RyOs7BrEH6H6mOEMWCkOlFML39Bs6l4dxwD+NDla8IsmNsBD3VltifgynrUGF7+NxB+l0Hr6MhusWmpTtwtQDOfDNCmPUAcpc736HgJ4wcBzTuGYMagVeJQNcG9YkUaGMscNCc5BQBoLJwn0RGDLmxLtrV7rYPAsLcOe9nfIbIy56/tsO9m0Tubuk78AIvL3UaMMMkBb0NXqvpcMeOSAQicOioUXNObavqENl147il6za9TfOh9Ybw0YjeU4qVXS+Q2NaOLZc5JAu5/C2W8n9mVltyOeugdivMsVjwD+kdbC9XXY6RwYZZuYohawcE5UWja/D3dYr7lK9ySufpkO80DdRuy0rHx5Rq+1koY0Q5xBg/i77vRAlv/Jfzi5niFsJcPEtOv4xVaY4l3rGrTfvNmMENt2Xz2IiOaaPmJJXgSgNwmElw80yS/G49E8U2j/NQBg5';
  
+ var __VIEWSTATEGENERATOR = '36DF8DAE';
+ 
  var __HEADERS = {
   'Connection':'keep-alive',
   'Content-Type':'application/x-www-form-urlencoded',
-  'Cookie':'ASP.NET_SessionId=pkitlwsrywi3soyyhmiz2zhn; idProyectoAnterior=197; idTipoAsignacionAnterior=1; idFocalPointAnterior=10030',
+  'Cookie':'ASP.NET_SessionId=q34ophxzrqy31uok3zzwruwm; idProyectoAnterior=197; idTipoAsignacionAnterior=1; idFocalPointAnterior=10030',
  };
  
  module.exports ={
   __VIEWSTATE,
   __EVENTVALIDATION,
+  __VIEWSTATEGENERATOR,
   __HEADERS
 }
 
