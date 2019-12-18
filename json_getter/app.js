@@ -66,7 +66,7 @@ function startProcess() {
 function parseHtml(rawData) {
   return new Promise(function(resolve, reject) {
     const rootDir = parse(rawData);
-    var jsonsUrls = rootDir.querySelectorAll('a');
+    var jsonsUrls = rootDir.querySelectorAll('a')
     resolve(jsonsUrls)
   });
 };
@@ -76,8 +76,8 @@ function generateJsonsUrls(jsonsUrls){
     var filesList =[];
     for (var variable in jsonsUrls) {
       if (jsonsUrls.hasOwnProperty(variable)) {
-        if (jsonsUrls[variable].text.indexOf(".json")>-1) {
-          filesList.push(jsonsUrls[variable].text)
+        if (jsonsUrls[variable].attributes.href.indexOf(".json")>-1) {
+          filesList.push(jsonsUrls[variable].attributes.href)
         };
       };
     };
