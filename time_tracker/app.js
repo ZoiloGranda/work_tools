@@ -221,7 +221,7 @@ async function login(page) {
     return new Promise(function(resolve, reject) {
      var description = formatedPostData.description.replace(/'/g, '');
      description = encodeURIComponent(description)
-     var formatedDate = `${formatedPostData.dayToReport}/${datesToReport.month}/2019`;
+     var formatedDate = `${formatedPostData.dayToReport}/${datesToReport.month}/2020`;
      var data = {
       ctl00$ContentPlaceHolder$txtFrom:formatedDate,
       ctl00$ContentPlaceHolder$idProyectoDropDownList:197,
